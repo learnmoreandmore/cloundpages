@@ -1,0 +1,113 @@
+// variables.scss 全局SCSS变量文件（适配项目所有页面/组件样式，统一维护）
+// 基础颜色变量（主色、辅助色、功能色，与common/reset.scss联动）
+$color-primary: #1890ff !default;         // 主色（蓝色，核心按钮、标题、强调元素）
+$color-primary-hover: #096dd9 !default;   // 主色hover状态
+$color-primary-active: #005cc5 !default;  // 主色激活状态
+$color-primary-light: rgba(24, 144, 255, 0.1) !default; // 主色浅背景（hover、选中背景）
+
+$color-info: #13c2c2 !default;            // 信息色（青色，权限设置、次要强调）
+$color-info-hover: #0cb8b8 !default;      // 信息色hover状态
+$color-info-light: rgba(19, 194, 194, 0.1) !default; // 信息色浅背景
+
+$color-success: #52c41a !default;         // 成功色（绿色，操作成功提示、启用状态）
+$color-success-hover: #47a814 !default;   // 成功色hover状态
+$color-success-light: rgba(82, 196, 26, 0.1) !default; // 成功色浅背景
+
+$color-warning: #faad14 !default;         // 警告色（黄色，提示、待处理状态）
+$color-warning-hover: #f79f00 !default;   // 警告色hover状态
+$color-warning-light: rgba(250, 173, 20, 0.1) !default; // 警告色浅背景
+
+$color-danger: #f5222d !default;          // 危险色（红色，删除、禁用、错误提示）
+$color-danger-hover: #e01620 !default;    // 危险色hover状态
+$color-danger-light: rgba(245, 34, 45, 0.1) !default; // 危险色浅背景
+
+// 文本颜色变量（适配明暗模式，统一文本层级）
+$text-primary: #333333 !default;          // 主要文本（标题、正文）
+$text-secondary: #666666 !default;        // 次要文本（说明、辅助文字）
+$text-placeholder: #999999 !default;      // 占位文本（输入框、提示）
+$text-disabled: #c9c9c9 !default;         // 禁用文本（禁用按钮、不可编辑内容）
+$text-white: #ffffff !default;            // 白色文本（深色背景上的文字）
+
+// 背景色变量（页面、组件背景，区分层级）
+$bg-primary: #ffffff !default;            // 主要背景（卡片、页面主体）
+$bg-secondary: #f5f7fa !default;          // 次要背景（页面整体背景、分隔区域）
+$bg-tertiary: #fafafa !default;           // 三级背景（表单、列表项hover）
+$bg-disabled: #f2f2f2 !default;           // 禁用背景（禁用组件、不可操作区域）
+$bg-mask: rgba(0, 0, 0, 0.5) !default;    // 遮罩背景（弹窗遮罩）
+
+// 边框颜色变量（统一边框风格，避免杂乱）
+$border-primary: #e5e6eb !default;        // 主要边框（卡片、输入框、表格）
+$border-secondary: #f0f0f0 !default;      // 次要边框（分隔线、列表项）
+$border-focus: rgba(24, 144, 255, 0.2) !default; // 聚焦边框（输入框、按钮聚焦）
+
+// 暗色模式变量（与页面暗色模式适配，对应浅色模式变量）
+$dark-color-primary: #40a9ff !default;    // 暗色主色
+$dark-text-primary: #f3f4f6 !default;     // 暗色主要文本
+$dark-text-secondary: #d1d5db !default;   // 暗色次要文本
+$dark-bg-primary: #1f2937 !default;       // 暗色主要背景（卡片、组件）
+$dark-bg-secondary: #111827 !default;     // 暗色次要背景（页面整体）
+$dark-border-primary: #374151 !default;   // 暗色边框
+$dark-border-secondary: #2d3748 !default; // 暗色次要边框
+
+// 字体变量（统一字体、字号、行高，保证排版一致）
+$font-family: "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif !default; // 全局字体
+$font-xs: 12px !default;                  // 超小字体（提示、标签）
+$font-sm: 14px !default;                  // 小字体（正文、表单文字）
+$font-md: 16px !default;                  // 中字体（小标题、按钮文字）
+$font-lg: 18px !default;                  // 大字体（页面标题）
+$font-xl: 20px !default;                  // 超大字体（一级标题、系统名称）
+$font-xxl: 24px !default;                 // 特大字体（重点强调标题）
+
+$font-weight-normal: 400 !default;        // 常规字体
+$font-weight-medium: 500 !default;        // 中等加粗（按钮、小标题）
+$font-weight-bold: 600 !default;          // 加粗（标题、强调文本）
+
+$line-height-xs: 1.2 !default;            // 超小行高
+$line-height-sm: 1.4 !default;            // 小行高
+$line-height-md: 1.5 !default;            // 中行高（正文）
+$line-height-lg: 1.8 !default;            // 大行高（标题、按钮）
+
+// 间距变量（统一页面间距，保持整洁，按8px倍数设计）
+$spacing-xs: 4px !default;                // 超小间距（内边距、间距微调）
+$spacing-sm: 8px !default;                // 小间距（组件内边距、元素间距）
+$spacing-md: 16px !default;               // 中间距（模块间距、卡片内边距）
+$spacing-lg: 20px !default;               // 大间距（页面内边距、大模块间距）
+$spacing-xl: 24px !default;               // 超大间距（页面头部、底部间距）
+$spacing-xxl: 32px !default;              // 特大间距（页面主体与边框间距）
+
+// 边框圆角变量（统一圆角风格，避免突兀）
+$radius-xs: 4px !default;                 // 超小圆角（输入框、按钮）
+$radius-md: 8px !default;                 // 中圆角（卡片、弹窗）
+$radius-lg: 12px !default;                // 大圆角（头像、特殊组件）
+$radius-full: 50% !default;               // 圆形（头像、圆形按钮）
+
+// 阴影变量（区分组件层级，避免阴影杂乱）
+$shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.05) !default; // 小阴影（卡片默认状态）
+$shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08) !default; // 中阴影（卡片hover、弹窗）
+$shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.12) !default; // 大阴影（重点组件、悬浮层）
+$shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.05) !default; // 内阴影（输入框）
+
+// 组件尺寸变量（统一组件大小，适配布局）
+$header-height: 60px !default;            // 顶部导航高度
+$sidebar-width: 220px !default;           // 侧边栏宽度
+$sidebar-collapsed-width: 64px !default;  // 侧边栏折叠后宽度
+$footer-height: 48px !default;            // 底部高度（如需）
+$btn-height-sm: 36px !default;            // 小按钮高度
+$btn-height-md: 44px !default;            // 中按钮高度（默认）
+$btn-height-lg: 52px !default;            // 大按钮高度
+$input-height-sm: 36px !default;          // 小输入框高度
+$input-height-md: 44px !default;          // 中输入框高度（默认）
+$input-height-lg: 52px !default;          // 大输入框高度
+
+// 过渡动画变量（统一动画效果，提升体验）
+$transition-speed: 0.3s !default;         // 过渡速度（hover、折叠、弹窗）
+$transition-ease: ease !default;          // 过渡曲线
+$transition-all: all $transition-speed $transition-ease !default; // 全属性过渡
+
+// 其他常用变量
+$z-index-base: 100 !default;              // 基础层级
+$z-index-modal: 1000 !default;            // 弹窗层级
+$z-index-dropdown: 1100 !default;         // 下拉菜单层级
+$z-index-loading: 1200 !default;          // 加载层层级
+$scrollbar-width: 6px !default;           // 滚动条宽度
+$mask-opacity: 0.5 !default;              // 遮罩透明度

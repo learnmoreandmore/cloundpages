@@ -1,0 +1,8 @@
+node_modules/
+dist/
+public/
+*.config.js
+*.lock
+*.log
+.vscode/
+.idea/
