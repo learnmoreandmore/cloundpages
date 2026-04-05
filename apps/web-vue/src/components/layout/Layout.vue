@@ -17,7 +17,7 @@
           <span class="user-info">
             <el-avatar :icon="User" />
             <span class="user-name">{{ userStore.userName }}</span>
-            <el-icon class="dropdown-icon"><ChevronDown /></el-icon>
+            <el-icon class="dropdown-icon"><ArrowDown /></el-icon>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -94,7 +94,7 @@ import { ref, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/modules/userStore'
 import { useSystemStore } from '@/stores/modules/systemStore'
-import { User, ChevronDown, Menu } from '@element-plus/icons-vue'
+import { User, ArrowDown, Menu } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const userStore = useUserStore()

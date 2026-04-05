@@ -69,7 +69,7 @@
 
       <el-card class="stats-card" shadow="hover">
         <div class="stats-header">
-          <el-icon class="stats-icon"><CheckCircle /></el-icon>
+          <el-icon class="stats-icon"><CircleCheck /></el-icon>
           <h3>今日完成任务</h3>
         </div>
         <div class="stats-value">{{ taskCount }}</div>
@@ -129,7 +129,7 @@
           </el-button>
           <el-button
             type="primary"
-            icon="Role"
+            icon="Memo"
             @click="$router.push('/system/role')"
             class="quick-btn"
           >
@@ -168,8 +168,8 @@ import { useUserStore } from '@/stores/modules/userStore'
 import { useSystemStore } from '@/stores/modules/systemStore'
 import { formatTime } from '@/utils/format'
 import { 
-  User, Setting, Message, CheckCircle, 
-  Moon, Sunny, Refresh, Role, Upload, Download, Help 
+  User, Setting, Message, CircleCheck, 
+  Moon, Sunny, Refresh, Memo, Upload, Download, Help 
 } from '@element-plus/icons-vue'
 
 // 引入Pinia仓库

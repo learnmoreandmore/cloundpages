@@ -178,8 +178,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import request from '@/api'
 import { 
-  Plus, Search, Edit, Delete, Home, Setting, 
-  User, Role, Menu as MenuIcon 
+  Plus, Search, Edit, Delete, House, Setting, 
+  User, Memo, Menu as MenuIcon 
 } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -262,7 +262,7 @@ const getMenuList = async () => {
       {
         id: '1',
         menuName: '首页',
-        icon: 'Home',
+        icon: 'House',
         path: '/home',
         component: '@/views/home/Home.vue',
         parentId: '0',
@@ -317,7 +317,7 @@ const getMenuList = async () => {
       {
         id: '6',
         menuName: '角色管理',
-        icon: 'Role',
+        icon: 'Memo',
         path: '/system/role',
         component: '@/views/system/Role.vue',
         parentId: '4',
