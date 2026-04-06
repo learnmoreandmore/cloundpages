@@ -34,15 +34,27 @@ async function checkAuth(request, env) {
 }
 
 export async function onRequest(context) {
-  const { request, env, params } = context;
-  const { path } = params;
+  const {
+    request,
+    env,
+    params,
+    next,
+    data,
+    waitUntil
+  } = context;
+
+  const { path } = params; // 例如 user/info
+  const url = new URL(request.url);
   const method = request.method;
+
+  // 简单日志
+  console.log(`[API] ${url} ${method} /api/${path || ''}`);
 
   // 跨域预检直接返回
   if (method === "OPTIONS") return handleOptions();
 
   // 白名单
-  const openPaths = ["", "hello", "login"];
+  const openPaths = ["", "hello", "login", "user/login"];
   const needAuth = !openPaths.includes(path);
 
   if (needAuth) {
