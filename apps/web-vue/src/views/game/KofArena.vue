@@ -315,67 +315,130 @@ const basePose = () => ({
   ball: { x: 69, y: 70, r: 8 }
 })
 
-const applyIdlePose = (pose, frame) => {
-  const bob = Math.round(Math.sin(frame * 0.08) * 1.5)
-  pose.head.y += bob
-  pose.neck.y += bob
-  pose.torso.y += bob
-  pose.chest.y += bob
-  pose.waist.y += bob
-  pose.leftUpperArm.y += bob
-  pose.leftForeArm.y += bob
-  pose.rightUpperArm.y += bob
-  pose.rightForeArm.y += bob
-  pose.leftHand.y += bob
-  pose.rightHand.y += bob
-  pose.ball.y += bob
+const idleFrames = [
+  { bob: 0, arm: 0, ballY: 0 },
+  { bob: 1, arm: -1, ballY: 1 },
+  { bob: 0, arm: 0, ballY: 0 },
+  { bob: -1, arm: 1, ballY: -1 }
+]
+
+const walkFrames = [
+  { armSwing: -4, legSwing: 4, liftLeft: 0, liftRight: 6, ballY: 6 },
+  { armSwing: -2, legSwing: 2, liftLeft: 2, liftRight: 4, ballY: 4 },
+  { armSwing: 0, legSwing: 0, liftLeft: 4, liftRight: 2, ballY: 2 },
+  { armSwing: 2, legSwing: -2, liftLeft: 6, liftRight: 0, ballY: 4 },
+  { armSwing: 4, legSwing: -4, liftLeft: 4, liftRight: 2, ballY: 6 },
+  { armSwing: 2, legSwing: -2, liftLeft: 2, liftRight: 4, ballY: 4 },
+  { armSwing: 0, legSwing: 0, liftLeft: 0, liftRight: 6, ballY: 2 },
+  { armSwing: -2, legSwing: 2, liftLeft: 0, liftRight: 4, ballY: 4 }
+]
+
+const jumpFrames = [
+  { sway: -2, lift: 0, ballY: -2 },
+  { sway: -1, lift: 2, ballY: -6 },
+  { sway: 0, lift: 4, ballY: -10 },
+  { sway: 1, lift: 6, ballY: -12 },
+  { sway: 2, lift: 4, ballY: -9 },
+  { sway: 1, lift: 2, ballY: -5 },
+  { sway: 0, lift: 1, ballY: -2 }
+]
+
+const punchFrames = [
+  { extend: 6, lean: 1, ballX: 22, ballY: 74 },
+  { extend: 14, lean: 2, ballX: 20, ballY: 76 },
+  { extend: 24, lean: 3, ballX: 18, ballY: 78 },
+  { extend: 28, lean: 3, ballX: 18, ballY: 78 },
+  { extend: 14, lean: 2, ballX: 20, ballY: 76 },
+  { extend: 6, lean: 1, ballX: 22, ballY: 74 }
+]
+
+const kickFrames = [
+  { extend: 8, lean: 1, ballX: 24, ballY: 76 },
+  { extend: 16, lean: 2, ballX: 22, ballY: 77 },
+  { extend: 24, lean: 3, ballX: 20, ballY: 79 },
+  { extend: 30, lean: 4, ballX: 18, ballY: 81 },
+  { extend: 18, lean: 2, ballX: 22, ballY: 77 },
+  { extend: 8, lean: 1, ballX: 24, ballY: 76 }
+]
+
+const hitFrames = [
+  { shake: -1 },
+  { shake: -3 },
+  { shake: -4 },
+  { shake: -2 },
+  { shake: -1 }
+]
+
+const getCycleFrame = (frames, fighter, speedDivisor = 1) => {
+  const step = Math.max(1, speedDivisor)
+  const index = Math.floor(fighter.animFrame / step) % frames.length
+  return frames[index]
 }
 
-const applyWalkPose = (pose, frame) => {
-  const swing = Math.sin(frame * 0.28)
-  const antiSwing = Math.sin(frame * 0.28 + Math.PI)
-  const liftLeft = Math.max(0, antiSwing)
-  const liftRight = Math.max(0, swing)
-
-  pose.leftUpperArm.x -= Math.round(swing * 4)
-  pose.leftForeArm.x -= Math.round(swing * 5)
-  pose.leftHand.x -= Math.round(swing * 5)
-  pose.rightUpperArm.x += Math.round(swing * 4)
-  pose.rightForeArm.x += Math.round(swing * 5)
-  pose.rightHand.x += Math.round(swing * 6)
-
-  pose.leftThigh.x -= Math.round(swing * 3)
-  pose.leftShin.x -= Math.round(swing * 4)
-  pose.leftShin.y -= Math.round(liftLeft * 6)
-  pose.leftShoe.x -= Math.round(swing * 4)
-  pose.leftShoe.y -= Math.round(liftLeft * 6)
-
-  pose.rightThigh.x += Math.round(swing * 3)
-  pose.rightShin.x += Math.round(swing * 4)
-  pose.rightShin.y -= Math.round(liftRight * 6)
-  pose.rightShoe.x += Math.round(swing * 4)
-  pose.rightShoe.y -= Math.round(liftRight * 6)
-  pose.ball.y += Math.round(Math.abs(swing) * 6)
+const applyIdlePose = (pose, fighter) => {
+  const frame = getCycleFrame(idleFrames, fighter, 8)
+  pose.head.y += frame.bob
+  pose.neck.y += frame.bob
+  pose.torso.y += frame.bob
+  pose.chest.y += frame.bob
+  pose.waist.y += frame.bob
+  pose.leftUpperArm.y += frame.bob
+  pose.leftForeArm.y += frame.bob
+  pose.rightUpperArm.y += frame.bob
+  pose.rightForeArm.y += frame.bob
+  pose.leftHand.y += frame.bob
+  pose.rightHand.y += frame.bob
+  pose.leftUpperArm.x += frame.arm
+  pose.leftForeArm.x += frame.arm
+  pose.rightUpperArm.x -= frame.arm
+  pose.rightForeArm.x -= frame.arm
+  pose.ball.y += frame.ballY
 }
 
-const applyJumpPose = (pose, frame) => {
-  const sway = Math.round(Math.sin(frame * 0.15) * 2)
-  pose.head.y -= 2
-  pose.torso.y -= 2
-  pose.chest.y -= 2
-  pose.waist.y -= 2
+const applyWalkPose = (pose, fighter) => {
+  const frame = getCycleFrame(walkFrames, fighter, 3)
 
-  pose.leftUpperArm.x = 20 + sway
+  pose.leftUpperArm.x -= frame.armSwing
+  pose.leftForeArm.x -= frame.armSwing + 1
+  pose.leftHand.x -= frame.armSwing + 2
+  pose.rightUpperArm.x += frame.armSwing
+  pose.rightForeArm.x += frame.armSwing + 1
+  pose.rightHand.x += frame.armSwing + 2
+
+  pose.leftThigh.x += frame.legSwing
+  pose.leftShin.x += frame.legSwing
+  pose.leftShin.y -= frame.liftLeft
+  pose.leftShoe.x += frame.legSwing
+  pose.leftShoe.y -= frame.liftLeft
+
+  pose.rightThigh.x -= frame.legSwing
+  pose.rightShin.x -= frame.legSwing
+  pose.rightShin.y -= frame.liftRight
+  pose.rightShoe.x -= frame.legSwing
+  pose.rightShoe.y -= frame.liftRight
+
+  pose.ball.y += frame.ballY
+}
+
+const applyJumpPose = (pose, fighter) => {
+  const frame = getCycleFrame(jumpFrames, fighter, 4)
+
+  pose.head.y -= 2 + Math.round(frame.lift * 0.2)
+  pose.torso.y -= 2 + Math.round(frame.lift * 0.25)
+  pose.chest.y -= 2 + Math.round(frame.lift * 0.25)
+  pose.waist.y -= 2 + Math.round(frame.lift * 0.25)
+
+  pose.leftUpperArm.x = 20 + frame.sway
   pose.leftUpperArm.y = 24
-  pose.leftForeArm.x = 16 + sway
+  pose.leftForeArm.x = 16 + frame.sway
   pose.leftForeArm.y = 10
-  pose.rightUpperArm.x = 62 + sway
+  pose.rightUpperArm.x = 62 + frame.sway
   pose.rightUpperArm.y = 24
-  pose.rightForeArm.x = 68 + sway
+  pose.rightForeArm.x = 68 + frame.sway
   pose.rightForeArm.y = 10
-  pose.leftHand.x = 14 + sway
+  pose.leftHand.x = 14 + frame.sway
   pose.leftHand.y = 2
-  pose.rightHand.x = 74 + sway
+  pose.rightHand.x = 74 + frame.sway
   pose.rightHand.y = 2
 
   pose.leftThigh.y = 96
@@ -389,65 +452,67 @@ const applyJumpPose = (pose, frame) => {
   pose.rightShin.x = 42
   pose.rightShoe.x = 42
   pose.rightShoe.y = 146
-  pose.ball.x = 74 + sway
-  pose.ball.y = -6
+  pose.ball.x = 74 + frame.sway
+  pose.ball.y = frame.ballY
 }
 
 const applyPunchPose = (pose, attack) => {
-  const t = 1 - attack.remaining / attack.total
-  const extend = Math.round((1 - Math.abs(0.5 - t) * 2) * 26)
-  pose.torso.x -= 3
-  pose.chest.x -= 3
-  pose.head.x += 3
+  const progress = 1 - attack.remaining / attack.total
+  const index = Math.min(punchFrames.length - 1, Math.floor(progress * punchFrames.length))
+  const frame = punchFrames[index]
+  pose.torso.x -= frame.lean
+  pose.chest.x -= frame.lean
+  pose.head.x += frame.lean + 1
   pose.head.y -= 1
-  pose.rightUpperArm.x = 64 + Math.round(extend * 0.4)
-  pose.rightForeArm.x = 72 + extend
+  pose.rightUpperArm.x = 64 + Math.round(frame.extend * 0.4)
+  pose.rightForeArm.x = 72 + frame.extend
   pose.rightForeArm.y = 53
-  pose.rightHand.x = 82 + extend
+  pose.rightHand.x = 82 + frame.extend
   pose.rightHand.y = 54
   pose.leftUpperArm.x = 18
   pose.leftForeArm.x = 14
   pose.leftHand.x = 12
-  pose.ball.x = 22
-  pose.ball.y = 73
+  pose.ball.x = frame.ballX
+  pose.ball.y = frame.ballY
 }
 
 const applyKickPose = (pose, attack) => {
-  const t = 1 - attack.remaining / attack.total
-  const extend = Math.round((1 - Math.abs(0.5 - t) * 2) * 28)
-  pose.torso.x -= 3
-  pose.chest.x -= 3
-  pose.head.x += 3
+  const progress = 1 - attack.remaining / attack.total
+  const index = Math.min(kickFrames.length - 1, Math.floor(progress * kickFrames.length))
+  const frame = kickFrames[index]
+  pose.torso.x -= frame.lean
+  pose.chest.x -= frame.lean
+  pose.head.x += frame.lean + 1
   pose.head.y -= 1
 
-  pose.rightThigh.x = 46 + Math.round(extend * 0.3)
-  pose.rightThigh.y = 90 - Math.round(extend * 0.1)
-  pose.rightShin.x = 46 + extend
-  pose.rightShin.y = 112 - Math.round(extend * 0.22)
-  pose.rightShoe.x = 44 + extend + 2
-  pose.rightShoe.y = 140 - Math.round(extend * 0.22)
+  pose.rightThigh.x = 46 + Math.round(frame.extend * 0.3)
+  pose.rightThigh.y = 90 - Math.round(frame.extend * 0.12)
+  pose.rightShin.x = 46 + frame.extend
+  pose.rightShin.y = 112 - Math.round(frame.extend * 0.22)
+  pose.rightShoe.x = 44 + frame.extend + 2
+  pose.rightShoe.y = 140 - Math.round(frame.extend * 0.22)
 
   pose.leftThigh.x = 32
   pose.leftShin.x = 32
   pose.leftShoe.x = 30
   pose.rightHand.x = 78
   pose.leftHand.x = 18
-  pose.ball.x = 24
-  pose.ball.y = 74
+  pose.ball.x = frame.ballX
+  pose.ball.y = frame.ballY
 }
 
-const applyHitPose = (pose, frame) => {
-  const shake = Math.round(Math.sin(frame * 0.7) * 2)
-  pose.head.x -= 4 + shake
-  pose.torso.x -= 3 + shake
-  pose.chest.x -= 3 + shake
-  pose.waist.x -= 3 + shake
-  pose.rightUpperArm.x -= 2
-  pose.rightForeArm.x -= 3
-  pose.rightHand.x -= 3
-  pose.leftUpperArm.x -= 2
-  pose.leftForeArm.x -= 3
-  pose.leftHand.x -= 3
+const applyHitPose = (pose, fighter) => {
+  const frame = getCycleFrame(hitFrames, fighter, 2)
+  pose.head.x += frame.shake - 3
+  pose.torso.x += frame.shake - 2
+  pose.chest.x += frame.shake - 2
+  pose.waist.x += frame.shake - 2
+  pose.rightUpperArm.x += frame.shake - 1
+  pose.rightForeArm.x += frame.shake - 2
+  pose.rightHand.x += frame.shake - 2
+  pose.leftUpperArm.x += frame.shake - 1
+  pose.leftForeArm.x += frame.shake - 2
+  pose.leftHand.x += frame.shake - 2
   pose.ball.x = 16
   pose.ball.y = 92
 }
@@ -455,7 +520,6 @@ const applyHitPose = (pose, frame) => {
 const getPoseFrame = (fighter) => {
   const pose = basePose()
   const state = resolveAnimState(fighter)
-  const frame = fighter.animFrame
 
   // 头朝右+身子前倾的基础姿态（参考用户给的第二张图）。
   pose.head.x += 4
@@ -467,12 +531,12 @@ const getPoseFrame = (fighter) => {
   pose.leftUpperArm.y += 1
   pose.leftForeArm.y += 1
 
-  applyIdlePose(pose, frame)
-  if (state === 'walk') applyWalkPose(pose, frame)
-  if (state === 'jump') applyJumpPose(pose, frame)
+  applyIdlePose(pose, fighter)
+  if (state === 'walk') applyWalkPose(pose, fighter)
+  if (state === 'jump') applyJumpPose(pose, fighter)
   if (state === 'punch' && fighter.activeAttack) applyPunchPose(pose, fighter.activeAttack)
   if (state === 'kick' && fighter.activeAttack) applyKickPose(pose, fighter.activeAttack)
-  if (state === 'hit') applyHitPose(pose, frame)
+  if (state === 'hit') applyHitPose(pose, fighter)
   return pose
 }
 
