@@ -3,7 +3,7 @@
     <header class="hud">
       <div class="title-block">
         <h1>King of Canvas</h1>
-        <p>拳皇风双人格斗原型（本地双人）</p>
+        <p>拳皇风双人格斗原型（科比 2D 像素人物版）</p>
       </div>
       <button class="restart-btn" type="button" @click="restartMatch">重新开始</button>
     </header>
@@ -42,10 +42,17 @@ const canvasHeight = 540
 const floorY = 440
 const gravity = 0.65
 const roundLimitSeconds = 60
+const kobePortraitUrl = 'https://a.espncdn.com/i/headshots/nba/players/full/110.png'
+const fighterPixelWidth = 72
+const fighterPixelHeight = 144
 
 const arenaCanvas = ref(null)
 const keyState = new Map()
 const jumpLatch = new Set()
+const spriteCache = {
+  p1: null,
+  p2: null
+}
 
 let animationFrameId = 0
 let previousTime = 0
@@ -55,9 +62,9 @@ const createFighter = (config) => ({
   name: config.name,
   color: config.color,
   x: config.x,
-  y: floorY - 120,
-  width: 58,
-  height: 120,
+  y: floorY - fighterPixelHeight,
+  width: fighterPixelWidth,
+  height: fighterPixelHeight,
   velocityX: 0,
   velocityY: 0,
   speed: 4.3,
@@ -68,15 +75,17 @@ const createFighter = (config) => ({
   controls: config.controls,
   attackCooldown: 0,
   hitStun: 0,
-  activeAttack: null
+  activeAttack: null,
+  sprite: config.sprite || null
 })
 
 let fighterOne = createFighter({
   id: 'P1',
-  name: '烈风',
+  name: '黑曼巴·赤',
   color: '#d43f3f',
   x: 180,
   facing: 1,
+  sprite: spriteCache.p1,
   controls: {
     left: 'a',
     right: 'd',
@@ -88,10 +97,11 @@ let fighterOne = createFighter({
 
 let fighterTwo = createFighter({
   id: 'P2',
-  name: '苍岚',
+  name: '黑曼巴·蓝',
   color: '#2f7cff',
   x: canvasWidth - 240,
   facing: -1,
+  sprite: spriteCache.p2,
   controls: {
     left: 'ArrowLeft',
     right: 'ArrowRight',
@@ -110,6 +120,93 @@ let matchState = {
 const normalizeKey = (rawKey) => {
   if (rawKey.length === 1) return rawKey.toLowerCase()
   return rawKey
+}
+
+const parseHexColor = (hexColor) => {
+  const color = hexColor.replace('#', '')
+  const value = Number.parseInt(color, 16)
+  return {
+    r: (value >> 16) & 255,
+    g: (value >> 8) & 255,
+    b: value & 255
+  }
+}
+
+const loadImage = (sourceUrl) => new Promise((resolve, reject) => {
+  const image = new Image()
+  image.crossOrigin = 'anonymous'
+  image.onload = () => resolve(image)
+  image.onerror = () => reject(new Error(`Failed to load image: ${sourceUrl}`))
+  image.src = sourceUrl
+})
+
+const createPixelSprite = (image, accentColor) => {
+  const sourceWidth = 24
+  const sourceHeight = 48
+  const accent = parseHexColor(accentColor)
+  const lowCanvas = document.createElement('canvas')
+  lowCanvas.width = sourceWidth
+  lowCanvas.height = sourceHeight
+  const lowCtx = lowCanvas.getContext('2d')
+
+  if (!lowCtx) return null
+
+  lowCtx.fillStyle = '#5b92d2'
+  lowCtx.fillRect(0, 0, sourceWidth, sourceHeight)
+
+  const sourceRatio = image.width / image.height
+  const targetRatio = sourceWidth / sourceHeight
+  let sx = 0
+  let sy = 0
+  let sWidth = image.width
+  let sHeight = image.height
+
+  if (sourceRatio > targetRatio) {
+    sWidth = image.height * targetRatio
+    sx = (image.width - sWidth) / 2
+  } else {
+    sHeight = image.width / targetRatio
+    sy = (image.height - sHeight) / 2
+  }
+
+  lowCtx.drawImage(image, sx, sy, sWidth, sHeight, 0, 0, sourceWidth, sourceHeight)
+
+  const frame = lowCtx.getImageData(0, 0, sourceWidth, sourceHeight)
+  const pixels = frame.data
+
+  for (let index = 0; index < pixels.length; index += 4) {
+    const alpha = pixels[index + 3]
+    if (alpha < 32) continue
+
+    const pixelPos = index / 4
+    const y = Math.floor(pixelPos / sourceWidth)
+    const inJerseyArea = y > sourceHeight * 0.46
+
+    pixels[index] = Math.min(255, Math.round(pixels[index] / 32) * 32)
+    pixels[index + 1] = Math.min(255, Math.round(pixels[index + 1] / 32) * 32)
+    pixels[index + 2] = Math.min(255, Math.round(pixels[index + 2] / 32) * 32)
+
+    if (inJerseyArea) {
+      pixels[index] = Math.round(pixels[index] * 0.7 + accent.r * 0.3)
+      pixels[index + 1] = Math.round(pixels[index + 1] * 0.7 + accent.g * 0.3)
+      pixels[index + 2] = Math.round(pixels[index + 2] * 0.7 + accent.b * 0.3)
+    }
+  }
+
+  lowCtx.putImageData(frame, 0, 0)
+  return lowCanvas
+}
+
+const hydrateKobeSprites = async () => {
+  try {
+    const image = await loadImage(kobePortraitUrl)
+    spriteCache.p1 = createPixelSprite(image, '#f35f5f')
+    spriteCache.p2 = createPixelSprite(image, '#63a8ff')
+    fighterOne.sprite = spriteCache.p1
+    fighterTwo.sprite = spriteCache.p2
+  } catch (error) {
+    console.error('Kobe sprite load failed:', error)
+  }
 }
 
 const canJump = (fighter) => fighter.y + fighter.height >= floorY - 0.5
@@ -322,11 +419,31 @@ const drawHud = (ctx) => {
 }
 
 const drawFighter = (ctx, fighter) => {
-  ctx.fillStyle = fighter.color
-  ctx.fillRect(fighter.x, fighter.y, fighter.width, fighter.height)
+  if (fighter.sprite) {
+    ctx.save()
+    ctx.imageSmoothingEnabled = false
+    if (fighter.facing === -1) {
+      ctx.translate(fighter.x + fighter.width, 0)
+      ctx.scale(-1, 1)
+      ctx.drawImage(fighter.sprite, 0, fighter.y, fighter.width, fighter.height)
+    } else {
+      ctx.drawImage(fighter.sprite, fighter.x, fighter.y, fighter.width, fighter.height)
+    }
+    ctx.restore()
+  } else {
+    // Fallback：图片加载失败时仍保持像素风角色体块
+    const pixel = 6
+    ctx.fillStyle = '#5b92d2'
+    ctx.fillRect(fighter.x, fighter.y, fighter.width, fighter.height)
+    ctx.fillStyle = '#f2d0b6'
+    ctx.fillRect(fighter.x + pixel * 3, fighter.y + pixel, pixel * 4, pixel * 4)
+    ctx.fillStyle = '#f4d35e'
+    ctx.fillRect(fighter.x + pixel * 2, fighter.y + pixel * 6, pixel * 6, pixel * 8)
+  }
 
-  ctx.fillStyle = '#f2d0b6'
-  ctx.fillRect(fighter.x + 15, fighter.y + 12, 28, 28)
+  ctx.strokeStyle = fighter.color
+  ctx.lineWidth = 2
+  ctx.strokeRect(fighter.x - 1, fighter.y - 1, fighter.width + 2, fighter.height + 2)
 
   if (fighter.activeAttack) {
     const hitBox = getAttackRect(fighter, fighter.activeAttack)
@@ -375,19 +492,21 @@ const handleKeyUp = (event) => {
 const restartMatch = () => {
   fighterOne = createFighter({
     id: 'P1',
-    name: '烈风',
+    name: '黑曼巴·赤',
     color: '#d43f3f',
     x: 180,
     facing: 1,
+    sprite: spriteCache.p1,
     controls: fighterOne.controls
   })
 
   fighterTwo = createFighter({
     id: 'P2',
-    name: '苍岚',
+    name: '黑曼巴·蓝',
     color: '#2f7cff',
     x: canvasWidth - 240,
     facing: -1,
+    sprite: spriteCache.p2,
     controls: fighterTwo.controls
   })
 
@@ -400,7 +519,8 @@ const restartMatch = () => {
   jumpLatch.clear()
 }
 
-onMounted(() => {
+onMounted(async () => {
+  await hydrateKobeSprites()
   window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('keyup', handleKeyUp)
   animationFrameId = requestAnimationFrame(tick)
