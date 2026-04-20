@@ -1,6 +1,15 @@
 // 公共路由（无需权限）
 export const publicRoutes = [
   {
+    path: '/kof',
+    name: 'KofArena',
+    component: () => import('@/views/game/KofArena.vue'),
+    meta: {
+      title: 'King of Canvas',
+      hidden: true
+    }
+  },
+  {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/login/Login.vue'),
@@ -20,7 +29,7 @@ export const publicRoutes = [
   },
   {
     path: '/',
-    redirect: '/home',
+    redirect: '/kof',
     meta: {
       hidden: true
     }
