@@ -43,8 +43,8 @@ const floorY = 440
 const gravity = 0.65
 const roundLimitSeconds = 60
 const kobePortraitUrl = 'https://a.espncdn.com/i/headshots/nba/players/full/110.png'
-const fighterPixelWidth = 88
-const fighterPixelHeight = 160
+const fighterPixelWidth = 104
+const fighterPixelHeight = 168
 
 const arenaCanvas = ref(null)
 const keyState = new Map()
@@ -197,10 +197,10 @@ const hydrateKobeHeads = async () => {
 const canJump = (fighter) => fighter.y + fighter.height >= floorY - 0.5
 
 const getBodyRect = (fighter) => ({
-  x: fighter.x + 20,
-  y: fighter.y + 20,
-  width: fighter.width - 40,
-  height: fighter.height - 14
+  x: fighter.x + 24,
+  y: fighter.y + 28,
+  width: fighter.width - 48,
+  height: fighter.height - 24
 })
 
 const getAttackRect = (fighter, attack) => {
@@ -210,7 +210,7 @@ const getAttackRect = (fighter, attack) => {
 
   return {
     x: attackX,
-    y: fighter.y + 52,
+    y: fighter.y + 56,
     width: attack.range,
     height: attack.height
   }
@@ -295,20 +295,24 @@ const resolveAnimState = (fighter) => {
 }
 
 const basePose = () => ({
-  head: { x: 30, y: 4, w: 28, h: 28 },
-  neck: { x: 38, y: 32, w: 12, h: 4 },
-  torso: { x: 25, y: 36, w: 38, h: 44 },
-  waist: { x: 28, y: 80, w: 32, h: 10 },
-  leftUpperArm: { x: 14, y: 40, w: 10, h: 22 },
-  leftForeArm: { x: 12, y: 61, w: 10, h: 20 },
-  rightUpperArm: { x: 64, y: 40, w: 10, h: 22 },
-  rightForeArm: { x: 66, y: 61, w: 10, h: 20 },
-  leftThigh: { x: 30, y: 92, w: 12, h: 28 },
-  leftShin: { x: 30, y: 120, w: 12, h: 28 },
-  rightThigh: { x: 46, y: 92, w: 12, h: 28 },
-  rightShin: { x: 46, y: 120, w: 12, h: 28 },
-  leftShoe: { x: 28, y: 148, w: 16, h: 8 },
-  rightShoe: { x: 44, y: 148, w: 16, h: 8 }
+  head: { x: 40, y: 6, w: 24, h: 24 },
+  neck: { x: 49, y: 30, w: 8, h: 4 },
+  torso: { x: 34, y: 36, w: 32, h: 44 },
+  chest: { x: 32, y: 40, w: 34, h: 18 },
+  waist: { x: 36, y: 80, w: 30, h: 12 },
+  leftUpperArm: { x: 22, y: 40, w: 10, h: 22 },
+  leftForeArm: { x: 20, y: 61, w: 10, h: 18 },
+  rightUpperArm: { x: 66, y: 42, w: 10, h: 20 },
+  rightForeArm: { x: 72, y: 60, w: 10, h: 18 },
+  leftHand: { x: 18, y: 77, w: 12, h: 8 },
+  rightHand: { x: 80, y: 76, w: 12, h: 8 },
+  leftThigh: { x: 38, y: 94, w: 12, h: 28 },
+  leftShin: { x: 38, y: 122, w: 12, h: 26 },
+  rightThigh: { x: 54, y: 92, w: 12, h: 26 },
+  rightShin: { x: 56, y: 118, w: 12, h: 28 },
+  leftShoe: { x: 36, y: 148, w: 16, h: 8 },
+  rightShoe: { x: 54, y: 148, w: 16, h: 8 },
+  ball: { x: 69, y: 70, r: 8 }
 })
 
 const applyIdlePose = (pose, frame) => {
@@ -316,11 +320,15 @@ const applyIdlePose = (pose, frame) => {
   pose.head.y += bob
   pose.neck.y += bob
   pose.torso.y += bob
+  pose.chest.y += bob
   pose.waist.y += bob
   pose.leftUpperArm.y += bob
   pose.leftForeArm.y += bob
   pose.rightUpperArm.y += bob
   pose.rightForeArm.y += bob
+  pose.leftHand.y += bob
+  pose.rightHand.y += bob
+  pose.ball.y += bob
 }
 
 const applyWalkPose = (pose, frame) => {
@@ -331,8 +339,10 @@ const applyWalkPose = (pose, frame) => {
 
   pose.leftUpperArm.x -= Math.round(swing * 4)
   pose.leftForeArm.x -= Math.round(swing * 5)
+  pose.leftHand.x -= Math.round(swing * 5)
   pose.rightUpperArm.x += Math.round(swing * 4)
   pose.rightForeArm.x += Math.round(swing * 5)
+  pose.rightHand.x += Math.round(swing * 6)
 
   pose.leftThigh.x -= Math.round(swing * 3)
   pose.leftShin.x -= Math.round(swing * 4)
@@ -345,22 +355,28 @@ const applyWalkPose = (pose, frame) => {
   pose.rightShin.y -= Math.round(liftRight * 6)
   pose.rightShoe.x += Math.round(swing * 4)
   pose.rightShoe.y -= Math.round(liftRight * 6)
+  pose.ball.y += Math.round(Math.abs(swing) * 6)
 }
 
 const applyJumpPose = (pose, frame) => {
   const sway = Math.round(Math.sin(frame * 0.15) * 2)
   pose.head.y -= 2
   pose.torso.y -= 2
+  pose.chest.y -= 2
   pose.waist.y -= 2
 
-  pose.leftUpperArm.x = 18 + sway
+  pose.leftUpperArm.x = 20 + sway
   pose.leftUpperArm.y = 24
-  pose.leftForeArm.x = 14 + sway
+  pose.leftForeArm.x = 16 + sway
   pose.leftForeArm.y = 10
-  pose.rightUpperArm.x = 60 + sway
+  pose.rightUpperArm.x = 62 + sway
   pose.rightUpperArm.y = 24
-  pose.rightForeArm.x = 64 + sway
+  pose.rightForeArm.x = 68 + sway
   pose.rightForeArm.y = 10
+  pose.leftHand.x = 14 + sway
+  pose.leftHand.y = 2
+  pose.rightHand.x = 74 + sway
+  pose.rightHand.y = 2
 
   pose.leftThigh.y = 96
   pose.leftShin.y = 120
@@ -373,25 +389,36 @@ const applyJumpPose = (pose, frame) => {
   pose.rightShin.x = 42
   pose.rightShoe.x = 42
   pose.rightShoe.y = 146
+  pose.ball.x = 74 + sway
+  pose.ball.y = -6
 }
 
 const applyPunchPose = (pose, attack) => {
   const t = 1 - attack.remaining / attack.total
   const extend = Math.round((1 - Math.abs(0.5 - t) * 2) * 26)
-  pose.torso.x -= 2
-  pose.head.x -= 1
+  pose.torso.x -= 3
+  pose.chest.x -= 3
+  pose.head.x += 3
+  pose.head.y -= 1
   pose.rightUpperArm.x = 64 + Math.round(extend * 0.4)
   pose.rightForeArm.x = 72 + extend
   pose.rightForeArm.y = 53
+  pose.rightHand.x = 82 + extend
+  pose.rightHand.y = 54
   pose.leftUpperArm.x = 18
   pose.leftForeArm.x = 14
+  pose.leftHand.x = 12
+  pose.ball.x = 22
+  pose.ball.y = 73
 }
 
 const applyKickPose = (pose, attack) => {
   const t = 1 - attack.remaining / attack.total
   const extend = Math.round((1 - Math.abs(0.5 - t) * 2) * 28)
-  pose.torso.x -= 2
-  pose.head.x -= 1
+  pose.torso.x -= 3
+  pose.chest.x -= 3
+  pose.head.x += 3
+  pose.head.y -= 1
 
   pose.rightThigh.x = 46 + Math.round(extend * 0.3)
   pose.rightThigh.y = 90 - Math.round(extend * 0.1)
@@ -403,23 +430,42 @@ const applyKickPose = (pose, attack) => {
   pose.leftThigh.x = 32
   pose.leftShin.x = 32
   pose.leftShoe.x = 30
+  pose.rightHand.x = 78
+  pose.leftHand.x = 18
+  pose.ball.x = 24
+  pose.ball.y = 74
 }
 
 const applyHitPose = (pose, frame) => {
   const shake = Math.round(Math.sin(frame * 0.7) * 2)
-  pose.head.x -= 2 + shake
+  pose.head.x -= 4 + shake
   pose.torso.x -= 3 + shake
+  pose.chest.x -= 3 + shake
   pose.waist.x -= 3 + shake
   pose.rightUpperArm.x -= 2
   pose.rightForeArm.x -= 3
+  pose.rightHand.x -= 3
   pose.leftUpperArm.x -= 2
   pose.leftForeArm.x -= 3
+  pose.leftHand.x -= 3
+  pose.ball.x = 16
+  pose.ball.y = 92
 }
 
 const getPoseFrame = (fighter) => {
   const pose = basePose()
   const state = resolveAnimState(fighter)
   const frame = fighter.animFrame
+
+  // 头朝右+身子前倾的基础姿态（参考用户给的第二张图）。
+  pose.head.x += 4
+  pose.torso.x -= 2
+  pose.chest.x -= 2
+  pose.waist.x -= 2
+  pose.rightUpperArm.y += 2
+  pose.rightForeArm.y += 2
+  pose.leftUpperArm.y += 1
+  pose.leftForeArm.y += 1
 
   applyIdlePose(pose, frame)
   if (state === 'walk') applyWalkPose(pose, frame)
@@ -550,6 +596,29 @@ const drawPixelPart = (ctx, part, fillColor, edgeColor) => {
   ctx.strokeRect(part.x + 0.5, part.y + 0.5, part.w - 1, part.h - 1)
 }
 
+const drawBasketball = (ctx, ball) => {
+  ctx.fillStyle = '#e47c30'
+  ctx.beginPath()
+  ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2)
+  ctx.fill()
+
+  ctx.strokeStyle = '#7c3512'
+  ctx.lineWidth = 1
+  ctx.beginPath()
+  ctx.arc(ball.x, ball.y, ball.r - 0.8, 0, Math.PI * 2)
+  ctx.stroke()
+
+  ctx.beginPath()
+  ctx.moveTo(ball.x - ball.r, ball.y)
+  ctx.lineTo(ball.x + ball.r, ball.y)
+  ctx.stroke()
+
+  ctx.beginPath()
+  ctx.moveTo(ball.x, ball.y - ball.r)
+  ctx.lineTo(ball.x, ball.y + ball.r)
+  ctx.stroke()
+}
+
 const drawFighter = (ctx, fighter) => {
   const pose = getPoseFrame(fighter)
   const jerseyMain = fighter.color
@@ -557,6 +626,7 @@ const drawFighter = (ctx, fighter) => {
   const shortsColor = adjustColor(jerseyMain, -18)
   const skinColor = '#8f5f43'
   const skinShade = '#6e4631'
+  const jerseyTrim = adjustColor(jerseyMain, 22)
   const shoeColor = '#f2f4fa'
   const shoeShade = '#aeb4c2'
 
@@ -581,6 +651,7 @@ const drawFighter = (ctx, fighter) => {
   drawPixelPart(ctx, pose.rightShoe, shoeColor, shoeShade)
 
   drawPixelPart(ctx, pose.torso, jerseyMain, jerseyShade)
+  drawPixelPart(ctx, pose.chest, jerseyTrim, jerseyShade)
   drawPixelPart(ctx, pose.waist, shortsColor, jerseyShade)
   drawPixelPart(ctx, pose.neck, skinColor, skinShade)
 
@@ -588,12 +659,16 @@ const drawFighter = (ctx, fighter) => {
   drawPixelPart(ctx, pose.leftForeArm, skinColor, skinShade)
   drawPixelPart(ctx, pose.rightUpperArm, skinColor, skinShade)
   drawPixelPart(ctx, pose.rightForeArm, skinColor, skinShade)
+  drawPixelPart(ctx, pose.leftHand, skinColor, skinShade)
+  drawPixelPart(ctx, pose.rightHand, skinColor, skinShade)
 
   if (fighter.headSprite) {
     ctx.drawImage(fighter.headSprite, pose.head.x, pose.head.y, pose.head.w, pose.head.h)
   } else {
     drawPixelPart(ctx, pose.head, skinColor, skinShade)
   }
+
+  drawBasketball(ctx, pose.ball)
 
   ctx.strokeStyle = fighter.color
   ctx.lineWidth = 2
