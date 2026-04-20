@@ -11,6 +11,9 @@
     "preview": "vite preview",
     "desktop:dev": "concurrently -k \"npm run dev:host\" \"wait-on tcp:5173 && electron .\"",
     "desktop:dist": "npm run build && electron . --dist",
+    "desktop:pack:dir": "npm run build && electron-builder --dir",
+    "desktop:build:win": "npm run build && electron-builder --win nsis",
+    "desktop:build:win:gametest": "npm run build && electron-builder --win nsis --config.directories.output=\"D:/edgedownload/gametest\"",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
     "format": "prettier --write ./**/*.{vue,js,jsx,json,css,scss}"
   },
@@ -27,6 +30,7 @@
     "@vitejs/plugin-vue": "^5.0.4",
     "concurrently": "^9.2.1",
     "electron": "^41.2.1",
+    "electron-builder": "^26.8.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-vue": "^9.23.0",
@@ -47,5 +51,31 @@
     "> 1%",
     "last 2 versions",
     "not dead"
-  ]
+  ],
+  "build": {
+    "appId": "com.kingofcanvas.desktop",
+    "productName": "King of Canvas",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
 }
