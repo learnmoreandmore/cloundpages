@@ -3,7 +3,7 @@
     <header class="hud">
       <div class="title-block">
         <h1>King of Canvas</h1>
-        <p>拳皇风双人格斗原型（科比 2D 像素人物版）</p>
+        <p>拳皇风双人格斗原型（科比 2D 像素角色动作帧）</p>
       </div>
       <button class="restart-btn" type="button" @click="restartMatch">重新开始</button>
     </header>
@@ -43,13 +43,13 @@ const floorY = 440
 const gravity = 0.65
 const roundLimitSeconds = 60
 const kobePortraitUrl = 'https://a.espncdn.com/i/headshots/nba/players/full/110.png'
-const fighterPixelWidth = 72
-const fighterPixelHeight = 144
+const fighterPixelWidth = 88
+const fighterPixelHeight = 160
 
 const arenaCanvas = ref(null)
 const keyState = new Map()
 const jumpLatch = new Set()
-const spriteCache = {
+const headSpriteCache = {
   p1: null,
   p2: null
 }
@@ -76,16 +76,17 @@ const createFighter = (config) => ({
   attackCooldown: 0,
   hitStun: 0,
   activeAttack: null,
-  sprite: config.sprite || null
+  headSprite: config.headSprite || null,
+  animFrame: 0
 })
 
 let fighterOne = createFighter({
   id: 'P1',
   name: '黑曼巴·赤',
-  color: '#d43f3f',
+  color: '#e95555',
   x: 180,
   facing: 1,
-  sprite: spriteCache.p1,
+  headSprite: headSpriteCache.p1,
   controls: {
     left: 'a',
     right: 'd',
@@ -98,10 +99,10 @@ let fighterOne = createFighter({
 let fighterTwo = createFighter({
   id: 'P2',
   name: '黑曼巴·蓝',
-  color: '#2f7cff',
+  color: '#5f9dff',
   x: canvasWidth - 240,
   facing: -1,
-  sprite: spriteCache.p2,
+  headSprite: headSpriteCache.p2,
   controls: {
     left: 'ArrowLeft',
     right: 'ArrowRight',
@@ -132,6 +133,13 @@ const parseHexColor = (hexColor) => {
   }
 }
 
+const adjustColor = (hexColor, amount) => {
+  const { r, g, b } = parseHexColor(hexColor)
+  const clamp = (value) => Math.max(0, Math.min(255, value))
+  const toHex = (value) => clamp(Math.round(value)).toString(16).padStart(2, '0')
+  return `#${toHex(r + amount)}${toHex(g + amount)}${toHex(b + amount)}`
+}
+
 const loadImage = (sourceUrl) => new Promise((resolve, reject) => {
   const image = new Image()
   image.crossOrigin = 'anonymous'
@@ -140,82 +148,59 @@ const loadImage = (sourceUrl) => new Promise((resolve, reject) => {
   image.src = sourceUrl
 })
 
-const createPixelSprite = (image, accentColor) => {
-  const sourceWidth = 24
-  const sourceHeight = 48
+const createKobeHeadSprite = (image, accentColor) => {
+  const sourceSize = 20
   const accent = parseHexColor(accentColor)
-  const lowCanvas = document.createElement('canvas')
-  lowCanvas.width = sourceWidth
-  lowCanvas.height = sourceHeight
-  const lowCtx = lowCanvas.getContext('2d')
+  const canvas = document.createElement('canvas')
+  canvas.width = sourceSize
+  canvas.height = sourceSize
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return null
 
-  if (!lowCtx) return null
+  // 头像区域取原图上方，聚焦脸部并做像素化处理。
+  const cropSize = Math.min(image.width, image.height * 0.58)
+  const sx = (image.width - cropSize) / 2
+  const sy = image.height * 0.04
+  ctx.drawImage(image, sx, sy, cropSize, cropSize, 0, 0, sourceSize, sourceSize)
 
-  lowCtx.fillStyle = '#5b92d2'
-  lowCtx.fillRect(0, 0, sourceWidth, sourceHeight)
-
-  const sourceRatio = image.width / image.height
-  const targetRatio = sourceWidth / sourceHeight
-  let sx = 0
-  let sy = 0
-  let sWidth = image.width
-  let sHeight = image.height
-
-  if (sourceRatio > targetRatio) {
-    sWidth = image.height * targetRatio
-    sx = (image.width - sWidth) / 2
-  } else {
-    sHeight = image.width / targetRatio
-    sy = (image.height - sHeight) / 2
-  }
-
-  lowCtx.drawImage(image, sx, sy, sWidth, sHeight, 0, 0, sourceWidth, sourceHeight)
-
-  const frame = lowCtx.getImageData(0, 0, sourceWidth, sourceHeight)
+  const frame = ctx.getImageData(0, 0, sourceSize, sourceSize)
   const pixels = frame.data
-
   for (let index = 0; index < pixels.length; index += 4) {
-    const alpha = pixels[index + 3]
-    if (alpha < 32) continue
+    if (pixels[index + 3] < 32) continue
+    pixels[index] = Math.round(pixels[index] / 32) * 32
+    pixels[index + 1] = Math.round(pixels[index + 1] / 32) * 32
+    pixels[index + 2] = Math.round(pixels[index + 2] / 32) * 32
 
-    const pixelPos = index / 4
-    const y = Math.floor(pixelPos / sourceWidth)
-    const inJerseyArea = y > sourceHeight * 0.46
-
-    pixels[index] = Math.min(255, Math.round(pixels[index] / 32) * 32)
-    pixels[index + 1] = Math.min(255, Math.round(pixels[index + 1] / 32) * 32)
-    pixels[index + 2] = Math.min(255, Math.round(pixels[index + 2] / 32) * 32)
-
-    if (inJerseyArea) {
+    const y = Math.floor((index / 4) / sourceSize)
+    if (y > 14) {
       pixels[index] = Math.round(pixels[index] * 0.7 + accent.r * 0.3)
       pixels[index + 1] = Math.round(pixels[index + 1] * 0.7 + accent.g * 0.3)
       pixels[index + 2] = Math.round(pixels[index + 2] * 0.7 + accent.b * 0.3)
     }
   }
-
-  lowCtx.putImageData(frame, 0, 0)
-  return lowCanvas
+  ctx.putImageData(frame, 0, 0)
+  return canvas
 }
 
-const hydrateKobeSprites = async () => {
+const hydrateKobeHeads = async () => {
   try {
     const image = await loadImage(kobePortraitUrl)
-    spriteCache.p1 = createPixelSprite(image, '#f35f5f')
-    spriteCache.p2 = createPixelSprite(image, '#63a8ff')
-    fighterOne.sprite = spriteCache.p1
-    fighterTwo.sprite = spriteCache.p2
+    headSpriteCache.p1 = createKobeHeadSprite(image, fighterOne.color)
+    headSpriteCache.p2 = createKobeHeadSprite(image, fighterTwo.color)
+    fighterOne.headSprite = headSpriteCache.p1
+    fighterTwo.headSprite = headSpriteCache.p2
   } catch (error) {
-    console.error('Kobe sprite load failed:', error)
+    console.error('Kobe head sprite load failed:', error)
   }
 }
 
 const canJump = (fighter) => fighter.y + fighter.height >= floorY - 0.5
 
 const getBodyRect = (fighter) => ({
-  x: fighter.x,
-  y: fighter.y,
-  width: fighter.width,
-  height: fighter.height
+  x: fighter.x + 20,
+  y: fighter.y + 20,
+  width: fighter.width - 40,
+  height: fighter.height - 14
 })
 
 const getAttackRect = (fighter, attack) => {
@@ -225,7 +210,7 @@ const getAttackRect = (fighter, attack) => {
 
   return {
     x: attackX,
-    y: fighter.y + 28,
+    y: fighter.y + 52,
     width: attack.range,
     height: attack.height
   }
@@ -245,8 +230,9 @@ const startAttack = (fighter, kind) => {
     fighter.activeAttack = {
       type: 'punch',
       remaining: 12,
+      total: 12,
       range: 48,
-      height: 46,
+      height: 44,
       damage: 8,
       knockback: 4.2,
       hitDone: false
@@ -258,6 +244,7 @@ const startAttack = (fighter, kind) => {
   fighter.activeAttack = {
     type: 'kick',
     remaining: 16,
+    total: 16,
     range: 66,
     height: 56,
     damage: 14,
@@ -272,7 +259,6 @@ const applyHit = (attacker, defender) => {
 
   const hitBox = getAttackRect(attacker, attacker.activeAttack)
   const hurtBox = getBodyRect(defender)
-
   if (!isOverlap(hitBox, hurtBox)) return
 
   attacker.activeAttack.hitDone = true
@@ -289,17 +275,159 @@ const applyHit = (attacker, defender) => {
 
 const evaluateClock = () => {
   if (roundClock > 0 || matchState.over) return
-
   matchState.over = true
-
   if (fighterOne.hp === fighterTwo.hp) {
     matchState.winnerText = '平局！'
     return
   }
-
   matchState.winnerText = fighterOne.hp > fighterTwo.hp
     ? `${fighterOne.name} 时间胜利！`
     : `${fighterTwo.name} 时间胜利！`
+}
+
+const resolveAnimState = (fighter) => {
+  if (fighter.hitStun > 0) return 'hit'
+  if (fighter.activeAttack?.type === 'punch') return 'punch'
+  if (fighter.activeAttack?.type === 'kick') return 'kick'
+  if (!canJump(fighter)) return 'jump'
+  if (Math.abs(fighter.velocityX) > 0.7) return 'walk'
+  return 'idle'
+}
+
+const basePose = () => ({
+  head: { x: 30, y: 4, w: 28, h: 28 },
+  neck: { x: 38, y: 32, w: 12, h: 4 },
+  torso: { x: 25, y: 36, w: 38, h: 44 },
+  waist: { x: 28, y: 80, w: 32, h: 10 },
+  leftUpperArm: { x: 14, y: 40, w: 10, h: 22 },
+  leftForeArm: { x: 12, y: 61, w: 10, h: 20 },
+  rightUpperArm: { x: 64, y: 40, w: 10, h: 22 },
+  rightForeArm: { x: 66, y: 61, w: 10, h: 20 },
+  leftThigh: { x: 30, y: 92, w: 12, h: 28 },
+  leftShin: { x: 30, y: 120, w: 12, h: 28 },
+  rightThigh: { x: 46, y: 92, w: 12, h: 28 },
+  rightShin: { x: 46, y: 120, w: 12, h: 28 },
+  leftShoe: { x: 28, y: 148, w: 16, h: 8 },
+  rightShoe: { x: 44, y: 148, w: 16, h: 8 }
+})
+
+const applyIdlePose = (pose, frame) => {
+  const bob = Math.round(Math.sin(frame * 0.08) * 1.5)
+  pose.head.y += bob
+  pose.neck.y += bob
+  pose.torso.y += bob
+  pose.waist.y += bob
+  pose.leftUpperArm.y += bob
+  pose.leftForeArm.y += bob
+  pose.rightUpperArm.y += bob
+  pose.rightForeArm.y += bob
+}
+
+const applyWalkPose = (pose, frame) => {
+  const swing = Math.sin(frame * 0.28)
+  const antiSwing = Math.sin(frame * 0.28 + Math.PI)
+  const liftLeft = Math.max(0, antiSwing)
+  const liftRight = Math.max(0, swing)
+
+  pose.leftUpperArm.x -= Math.round(swing * 4)
+  pose.leftForeArm.x -= Math.round(swing * 5)
+  pose.rightUpperArm.x += Math.round(swing * 4)
+  pose.rightForeArm.x += Math.round(swing * 5)
+
+  pose.leftThigh.x -= Math.round(swing * 3)
+  pose.leftShin.x -= Math.round(swing * 4)
+  pose.leftShin.y -= Math.round(liftLeft * 6)
+  pose.leftShoe.x -= Math.round(swing * 4)
+  pose.leftShoe.y -= Math.round(liftLeft * 6)
+
+  pose.rightThigh.x += Math.round(swing * 3)
+  pose.rightShin.x += Math.round(swing * 4)
+  pose.rightShin.y -= Math.round(liftRight * 6)
+  pose.rightShoe.x += Math.round(swing * 4)
+  pose.rightShoe.y -= Math.round(liftRight * 6)
+}
+
+const applyJumpPose = (pose, frame) => {
+  const sway = Math.round(Math.sin(frame * 0.15) * 2)
+  pose.head.y -= 2
+  pose.torso.y -= 2
+  pose.waist.y -= 2
+
+  pose.leftUpperArm.x = 18 + sway
+  pose.leftUpperArm.y = 24
+  pose.leftForeArm.x = 14 + sway
+  pose.leftForeArm.y = 10
+  pose.rightUpperArm.x = 60 + sway
+  pose.rightUpperArm.y = 24
+  pose.rightForeArm.x = 64 + sway
+  pose.rightForeArm.y = 10
+
+  pose.leftThigh.y = 96
+  pose.leftShin.y = 120
+  pose.leftShin.x = 34
+  pose.leftShoe.x = 32
+  pose.leftShoe.y = 146
+
+  pose.rightThigh.y = 96
+  pose.rightShin.y = 120
+  pose.rightShin.x = 42
+  pose.rightShoe.x = 42
+  pose.rightShoe.y = 146
+}
+
+const applyPunchPose = (pose, attack) => {
+  const t = 1 - attack.remaining / attack.total
+  const extend = Math.round((1 - Math.abs(0.5 - t) * 2) * 26)
+  pose.torso.x -= 2
+  pose.head.x -= 1
+  pose.rightUpperArm.x = 64 + Math.round(extend * 0.4)
+  pose.rightForeArm.x = 72 + extend
+  pose.rightForeArm.y = 53
+  pose.leftUpperArm.x = 18
+  pose.leftForeArm.x = 14
+}
+
+const applyKickPose = (pose, attack) => {
+  const t = 1 - attack.remaining / attack.total
+  const extend = Math.round((1 - Math.abs(0.5 - t) * 2) * 28)
+  pose.torso.x -= 2
+  pose.head.x -= 1
+
+  pose.rightThigh.x = 46 + Math.round(extend * 0.3)
+  pose.rightThigh.y = 90 - Math.round(extend * 0.1)
+  pose.rightShin.x = 46 + extend
+  pose.rightShin.y = 112 - Math.round(extend * 0.22)
+  pose.rightShoe.x = 44 + extend + 2
+  pose.rightShoe.y = 140 - Math.round(extend * 0.22)
+
+  pose.leftThigh.x = 32
+  pose.leftShin.x = 32
+  pose.leftShoe.x = 30
+}
+
+const applyHitPose = (pose, frame) => {
+  const shake = Math.round(Math.sin(frame * 0.7) * 2)
+  pose.head.x -= 2 + shake
+  pose.torso.x -= 3 + shake
+  pose.waist.x -= 3 + shake
+  pose.rightUpperArm.x -= 2
+  pose.rightForeArm.x -= 3
+  pose.leftUpperArm.x -= 2
+  pose.leftForeArm.x -= 3
+}
+
+const getPoseFrame = (fighter) => {
+  const pose = basePose()
+  const state = resolveAnimState(fighter)
+  const frame = fighter.animFrame
+
+  applyIdlePose(pose, frame)
+  if (state === 'walk') applyWalkPose(pose, frame)
+  if (state === 'jump') applyJumpPose(pose, frame)
+  if (state === 'punch' && fighter.activeAttack) applyPunchPose(pose, fighter.activeAttack)
+  if (state === 'kick' && fighter.activeAttack) applyKickPose(pose, fighter.activeAttack)
+  if (state === 'hit') applyHitPose(pose, frame)
+  return pose
 }
 
 const updateFighter = (fighter, enemy) => {
@@ -324,7 +452,6 @@ const updateFighter = (fighter, enemy) => {
       jumpLatch.add(jumpKey)
       fighter.velocityY = -fighter.jumpPower
     }
-
     if (!jumpPressed) {
       jumpLatch.delete(jumpKey)
     }
@@ -354,20 +481,18 @@ const updateFighter = (fighter, enemy) => {
 
   if (fighter.attackCooldown > 0) fighter.attackCooldown -= 1
   if (fighter.hitStun > 0) fighter.hitStun -= 1
-
   if (fighter.activeAttack) {
     fighter.activeAttack.remaining -= 1
-    if (fighter.activeAttack.remaining <= 0) {
-      fighter.activeAttack = null
-    }
+    if (fighter.activeAttack.remaining <= 0) fighter.activeAttack = null
   }
+
+  fighter.animFrame += 1
 }
 
 const drawBackground = (ctx) => {
   const gradient = ctx.createLinearGradient(0, 0, 0, canvasHeight)
   gradient.addColorStop(0, '#191c2f')
   gradient.addColorStop(1, '#2f2440')
-
   ctx.fillStyle = gradient
   ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
@@ -400,7 +525,7 @@ const drawHud = (ctx) => {
   ctx.fillStyle = '#fff'
   ctx.font = 'bold 18px sans-serif'
   ctx.fillText(fighterOne.name, leftX, y + 44)
-  ctx.fillText(fighterTwo.name, rightX + barWidth - 62, y + 44)
+  ctx.fillText(fighterTwo.name, rightX + barWidth - 94, y + 44)
 
   ctx.font = 'bold 34px sans-serif'
   ctx.fillStyle = '#ffe08a'
@@ -409,41 +534,71 @@ const drawHud = (ctx) => {
   if (matchState.over) {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'
     ctx.fillRect(0, 0, canvasWidth, canvasHeight)
-
     ctx.fillStyle = '#fff'
     ctx.font = 'bold 44px sans-serif'
-    ctx.fillText(matchState.winnerText, canvasWidth / 2 - 150, canvasHeight / 2)
+    ctx.fillText(matchState.winnerText, canvasWidth / 2 - 170, canvasHeight / 2)
     ctx.font = '20px sans-serif'
     ctx.fillText('点击“重新开始”再来一局', canvasWidth / 2 - 108, canvasHeight / 2 + 38)
   }
 }
 
+const drawPixelPart = (ctx, part, fillColor, edgeColor) => {
+  ctx.fillStyle = fillColor
+  ctx.fillRect(part.x, part.y, part.w, part.h)
+  ctx.strokeStyle = edgeColor
+  ctx.lineWidth = 1
+  ctx.strokeRect(part.x + 0.5, part.y + 0.5, part.w - 1, part.h - 1)
+}
+
 const drawFighter = (ctx, fighter) => {
-  if (fighter.sprite) {
-    ctx.save()
-    ctx.imageSmoothingEnabled = false
-    if (fighter.facing === -1) {
-      ctx.translate(fighter.x + fighter.width, 0)
-      ctx.scale(-1, 1)
-      ctx.drawImage(fighter.sprite, 0, fighter.y, fighter.width, fighter.height)
-    } else {
-      ctx.drawImage(fighter.sprite, fighter.x, fighter.y, fighter.width, fighter.height)
-    }
-    ctx.restore()
+  const pose = getPoseFrame(fighter)
+  const jerseyMain = fighter.color
+  const jerseyShade = adjustColor(jerseyMain, -34)
+  const shortsColor = adjustColor(jerseyMain, -18)
+  const skinColor = '#8f5f43'
+  const skinShade = '#6e4631'
+  const shoeColor = '#f2f4fa'
+  const shoeShade = '#aeb4c2'
+
+  ctx.save()
+  ctx.imageSmoothingEnabled = false
+
+  if (fighter.facing === -1) {
+    ctx.translate(fighter.x + fighter.width, fighter.y)
+    ctx.scale(-1, 1)
   } else {
-    // Fallback：图片加载失败时仍保持像素风角色体块
-    const pixel = 6
-    ctx.fillStyle = '#5b92d2'
-    ctx.fillRect(fighter.x, fighter.y, fighter.width, fighter.height)
-    ctx.fillStyle = '#f2d0b6'
-    ctx.fillRect(fighter.x + pixel * 3, fighter.y + pixel, pixel * 4, pixel * 4)
-    ctx.fillStyle = '#f4d35e'
-    ctx.fillRect(fighter.x + pixel * 2, fighter.y + pixel * 6, pixel * 6, pixel * 8)
+    ctx.translate(fighter.x, fighter.y)
+  }
+
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.22)'
+  ctx.fillRect(20, fighter.height - 9, 48, 6)
+
+  drawPixelPart(ctx, pose.leftThigh, shortsColor, jerseyShade)
+  drawPixelPart(ctx, pose.rightThigh, shortsColor, jerseyShade)
+  drawPixelPart(ctx, pose.leftShin, skinColor, skinShade)
+  drawPixelPart(ctx, pose.rightShin, skinColor, skinShade)
+  drawPixelPart(ctx, pose.leftShoe, shoeColor, shoeShade)
+  drawPixelPart(ctx, pose.rightShoe, shoeColor, shoeShade)
+
+  drawPixelPart(ctx, pose.torso, jerseyMain, jerseyShade)
+  drawPixelPart(ctx, pose.waist, shortsColor, jerseyShade)
+  drawPixelPart(ctx, pose.neck, skinColor, skinShade)
+
+  drawPixelPart(ctx, pose.leftUpperArm, skinColor, skinShade)
+  drawPixelPart(ctx, pose.leftForeArm, skinColor, skinShade)
+  drawPixelPart(ctx, pose.rightUpperArm, skinColor, skinShade)
+  drawPixelPart(ctx, pose.rightForeArm, skinColor, skinShade)
+
+  if (fighter.headSprite) {
+    ctx.drawImage(fighter.headSprite, pose.head.x, pose.head.y, pose.head.w, pose.head.h)
+  } else {
+    drawPixelPart(ctx, pose.head, skinColor, skinShade)
   }
 
   ctx.strokeStyle = fighter.color
   ctx.lineWidth = 2
-  ctx.strokeRect(fighter.x - 1, fighter.y - 1, fighter.width + 2, fighter.height + 2)
+  ctx.strokeRect(12, 2, fighter.width - 24, fighter.height - 6)
+  ctx.restore()
 
   if (fighter.activeAttack) {
     const hitBox = getAttackRect(fighter, fighter.activeAttack)
@@ -493,34 +648,30 @@ const restartMatch = () => {
   fighterOne = createFighter({
     id: 'P1',
     name: '黑曼巴·赤',
-    color: '#d43f3f',
+    color: '#e95555',
     x: 180,
     facing: 1,
-    sprite: spriteCache.p1,
+    headSprite: headSpriteCache.p1,
     controls: fighterOne.controls
   })
-
   fighterTwo = createFighter({
     id: 'P2',
     name: '黑曼巴·蓝',
-    color: '#2f7cff',
+    color: '#5f9dff',
     x: canvasWidth - 240,
     facing: -1,
-    sprite: spriteCache.p2,
+    headSprite: headSpriteCache.p2,
     controls: fighterTwo.controls
   })
 
   roundClock = roundLimitSeconds
-  matchState = {
-    over: false,
-    winnerText: ''
-  }
+  matchState = { over: false, winnerText: '' }
   keyState.clear()
   jumpLatch.clear()
 }
 
 onMounted(async () => {
-  await hydrateKobeSprites()
+  await hydrateKobeHeads()
   window.addEventListener('keydown', handleKeyDown)
   window.addEventListener('keyup', handleKeyUp)
   animationFrameId = requestAnimationFrame(tick)
