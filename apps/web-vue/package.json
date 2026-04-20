@@ -3,10 +3,14 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
+    "dev:host": "vite --host 0.0.0.0 --port 5173",
     "build": "vite build",
     "preview": "vite preview",
+    "desktop:dev": "concurrently -k \"npm run dev:host\" \"wait-on tcp:5173 && electron .\"",
+    "desktop:dist": "npm run build && electron . --dist",
     "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs --fix --ignore-path .gitignore",
     "format": "prettier --write ./**/*.{vue,js,jsx,json,css,scss}"
   },
@@ -21,6 +25,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
+    "concurrently": "^9.2.1",
+    "electron": "^41.2.1",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-vue": "^9.23.0",
@@ -30,7 +36,8 @@
     "sass-loader": "^14.2.1",
     "terser": "^5.46.1",
     "vite": "^5.2.0",
-    "vite-plugin-svg-icons": "^2.0.1"
+    "vite-plugin-svg-icons": "^2.0.1",
+    "wait-on": "^9.0.5"
   },
   "engines": {
     "node": ">=16.0.0",
